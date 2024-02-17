@@ -28,7 +28,7 @@ There are 3 Python scripts, 1 SQL script, and 1 Bash script:
 
 `bnb_script.py` - This is the ETL script for BNB data. It is used to extract and transform data from three different API sources (CoinGecko, Owlracle, and DefiLlama). Just like the BTC and ETH scripts, you can change the last code cell (part 7) if you don't want to store the dataframes into PostgreSQL. If you run this script more than once, you will create multiple tables.
 
-Note: If you encounter any error while running any of the above Python scripts, most likely it's because you hit some type of API rate limits, or because one or more of the API providers change the key names.
+Note: If you encounter any error while running any of the above Python scripts, most likely it's because you hit an API rate limit, or because one or more of the API providers has changed the key names.
 
 `alter_data_types.sql` - This is the SQL script that can be used to alter data types in your PostgreSQL database. Only execute this SQL script after you have successfully stored the data into your database using the above Python scripts.
 
