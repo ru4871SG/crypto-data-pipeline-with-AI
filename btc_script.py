@@ -5,15 +5,14 @@ ETL (Extract, Transform, Load) Script - Bitcoin
 # %%
 
 ## Libraries
+from sqlalchemy import create_engine, inspect
+from dotenv import load_dotenv
+
 import json
 import os
 import pandas as pd
 import requests
 import yfinance as yf
-
-from sqlalchemy import create_engine, inspect
-
-from dotenv import load_dotenv
 
 # %%
 
@@ -62,8 +61,6 @@ end_date = btc_90d['Date'].max()
 start_date = btc_90d['Date'].min()
 
 # Get NDX and Gold data from Yahoo Finance
-# NOTE: Create a folder 'py-yfinance' in the directory- C:\Users\<username>\AppData\Local\
-# if yf.download doesn't work
 NDX_90d = yf.download("^NDX", start=start_date, end=end_date)
 gold_90d = yf.download("GC=F", start=start_date, end=end_date)
 
@@ -77,7 +74,7 @@ gold_90d['Date'] = pd.to_datetime(gold_90d['Date'])
 # Convert 'Date' column to datetime format in btc_90d
 btc_90d['Date'] = pd.to_datetime(btc_90d['Date'])
 
-# Now merge
+# Merge the data
 btc_90d_w_external = btc_90d.merge(NDX_90d[['Date', 'Volume', 'Adj Close']], on='Date', how='right')
 btc_90d_w_external = btc_90d_w_external.merge(gold_90d[['Date', 'Volume', 'Adj Close']], on='Date',\
                                               how='left', suffixes=('_NDX', '_gold'))
@@ -87,7 +84,7 @@ btc_90d_w_external['price'] = btc_90d_w_external['price'].str.replace(',', '').a
 btc_90d_w_external['marketcap'] = btc_90d_w_external['marketcap'].str.replace(',', '').astype(float)
 btc_90d_w_external['vol_24h'] = btc_90d_w_external['vol_24h'].str.replace(',', '').astype(float)
 
-# Rename some column names
+# Rename the column names
 btc_90d_w_external = btc_90d_w_external.rename(columns={
     'Adj Close_NDX': 'ndx_price',
     'Volume_NDX': 'ndx_volume',
@@ -95,7 +92,7 @@ btc_90d_w_external = btc_90d_w_external.rename(columns={
     'Volume_gold': 'gold_volume'
 })
 
-# Remove the last row of the dataframe
+# Remove the last row of the dataframe to match the length of filled data
 btc_90d_w_external = btc_90d_w_external.iloc[:-1]
 
 # Normalize the price between btc, nasdaq, and gold
@@ -109,53 +106,26 @@ btc_90d_w_external['gold_price_normalized'] = btc_90d_w_external['gold_price'] \
 
 # %%
 
-## Part 2: Median Tx Fee from Mempool for the Past 30 Days
-bitcoin_mempool_list = []
-
-def get_latest_block_number():
-    """function to get the latest block number from mempool"""
-    url = "https://mempool.space/api/blocks/tip/height"
+## Part 2: Median Tx Fee from Mempool for the Past 1 Month (each row represents a group of blocks - per 3 blocks)
+def mempool_get_1m_avg_fee():
+    """Fetch average fee rates for the past 1 month"""
+    url = "https://mempool.space/api/v1/mining/blocks/fee-rates/1m"
     response = requests.get(url, timeout=10)
     if response.status_code == 200:
-        return int(response.text)
+        return response.json()
     else:
-        raise ValueError("Couldn't fetch the latest block number!")
+        raise ValueError("Failed to fetch 1 Month average fee rates!")
 
-block_number = get_latest_block_number()
+mempool_data_1m_btc_fee = mempool_get_1m_avg_fee()
 
-#288/15
-for _ in range(1):  # outer loop for n iterations - change this to 864 for 90 days of data
-    for _ in range(1):  # inner loop to get 15 blocks
-        # Create URL
-        url = f"https://mempool.space/api/v1/blocks/{block_number}"
+# Convert to DataFrame for easier handling and analysis
+df_mempool_data_1m_btc_fee = pd.DataFrame(mempool_data_1m_btc_fee)
 
-        # GET request
-        response = requests.get(url, timeout=10)
-        response_json = response.json()
-        response_json[0]['medianFee'] = response_json[0]['extras']['medianFee']
-        bitcoin_mempool_list.append(response_json[0])
+# Extract the median fee, which is 'avgFee_50', along with timestamps and average block heights for reference
+btc_1m_mempool_fee = df_mempool_data_1m_btc_fee[['avgHeight', 'timestamp', 'avgFee_50']].copy()
 
-        # Decrease block number by 1 for the next block
-        block_number -= 1
-
-# Convert the list of JSON objects to a Pandas DataFrame
-bitcoin_mempool_data_list = pd.json_normalize(bitcoin_mempool_list)
-
-combined_bitcoin_mempool_list = bitcoin_mempool_data_list.copy()
-
-btc_median_fee = combined_bitcoin_mempool_list['medianFee']
-mempool_stats_30d = combined_bitcoin_mempool_list[['height', 'timestamp']].copy()
-mempool_stats_30d['medianFee'] = btc_median_fee
-
-# Create a grouping variable - 144 blocks per 1 group except the last one may not achieve 144 blocks
-mempool_stats_30d['block_group'] = mempool_stats_30d.index // 144 + 1
-
-# Create a new df, grouped by block_group
-mempool_stats_30d_grouped = mempool_stats_30d.groupby('block_group')\
-                                .agg(height=('height', 'first'), medianFee=('medianFee', 'median'))\
-                                .reset_index()\
-                                .assign(block_group=lambda x: x['block_group']\
-                                .max() - x['block_group'] + 1)
+# Converting timestamp to readable date format
+btc_1m_mempool_fee['time'] = pd.to_datetime(btc_1m_mempool_fee['timestamp'], unit='s')
 
 
 # %%
@@ -211,7 +181,7 @@ btc_combined_data = btc_combined_data.round(0).melt(var_name="Data", value_name=
 
 # Define an error handling function for clarity
 def fetch_btc_stats():
-    """function to fetch Bitcoin stats from CoinGecko API"""
+    """Fetch Bitcoin stats from CoinGecko API"""
     try:
         response = requests.get("https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=bitcoin&order=market_cap_desc&per_page=100&page=1&sparkline=false&price_change_percentage=90d&locale=en", \
                                 timeout=10)
@@ -238,7 +208,6 @@ btc_stats = fetch_btc_stats()
 if btc_stats is None:
     print("Failed to fetch Bitcoin stats.")
 else:
-    # Continue processing
     pass
 
 # Selecting the required columns
@@ -256,13 +225,14 @@ column_rename = {
     "ath": "ATH",
     "atl": "ATL"
 }
+
 btc_stats_1 = {column_rename[key] if key in column_rename \
                else key: value for key, value in btc_stats_1.items()}
 
 # Converting the dictionary to DataFrame and then melting (similar to pivot_longer in R)
 btc_stats_cleaned = pd.DataFrame([btc_stats_1]).melt(var_name="Data", value_name="Value").round(0)
 
-# Since we already created `btc_combined_data`, we can concatenate both DataFrames
+# Since we already created `btc_combined_data`, concatenate both DataFrames
 btc_combined_data_final = pd.concat([btc_stats_cleaned, btc_combined_data], ignore_index=True)
 
 
@@ -335,7 +305,7 @@ lightning_mempool_total_capacity["added"] = pd.to_datetime(\
                                      lightning_mempool_total_capacity["added"], \
                                      unit='s', origin='unix', utc=True)
 
-# Check if values are 0 and delete the row if they are
+# Check if values are 0 and delete the rows if they are
 lightning_mempool_total_capacity = lightning_mempool_total_capacity[\
                                  (lightning_mempool_total_capacity[['total_capacity', \
                                                                 'channel_count']] != 0).all(axis=1)]
@@ -352,7 +322,7 @@ tables = inspector.get_table_names()
 # List of dataframes and their corresponding base table names
 dfs_and_tables = [
     (btc_90d_w_external, 'btc_90d_w_external'),
-    (mempool_stats_30d_grouped, 'mempool_stats_30d_grouped'),
+    (btc_1m_mempool_fee, 'btc_1m_mempool_fee'),
     (btc_mining_pools, 'btc_mining_pools'),
     (btc_combined_data_final, 'btc_combined_data_final'),
     (spot_exchanges_volume, 'spot_exchanges_volume'),

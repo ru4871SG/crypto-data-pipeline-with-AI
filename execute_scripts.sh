@@ -13,6 +13,7 @@ source .env
 # Run Python scripts
 echo "Running Python scripts..."
 "$PYTHON_PATH" btc_script.py
+"$PYTHON_PATH" btc_script_alt.py
 "$PYTHON_PATH" eth_script.py
 "$PYTHON_PATH" bnb_script.py
 

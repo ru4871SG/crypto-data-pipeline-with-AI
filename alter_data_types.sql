@@ -10,7 +10,7 @@ DECLARE
         WHERE table_schema = 'public'
         AND (
             table_name LIKE 'btc_90d_w_external'
-            OR table_name LIKE 'mempool_stats_30d_grouped'
+            OR table_name LIKE 'btc_1m_mempool_fee'
             OR table_name LIKE 'btc_mining_pools'
             OR table_name LIKE 'btc_combined_data_final'
             OR table_name LIKE 'spot_exchanges_volume'
@@ -25,7 +25,7 @@ DECLARE
             OR table_name LIKE 'bnb_tvl'
             OR table_name LIKE 'bnb_defi_tvl_top10'
             OR table_name LIKE 'btc_90d_w_external_%'
-            OR table_name LIKE 'mempool_stats_30d_grouped_%'
+            OR table_name LIKE 'btc_1m_mempool_fee_%'
             OR table_name LIKE 'btc_mining_pools_%'
             OR table_name LIKE 'btc_combined_data_final_%'
             OR table_name LIKE 'spot_exchanges_volume_%'
@@ -77,7 +77,7 @@ BEGIN
             END IF;
 
         -- Apply the ALTER TABLE commands based on the table pattern
-        ELSIF v_table_name LIKE 'mempool_stats_30d_grouped' THEN
+        ELSIF v_table_name LIKE 'btc_1m_mempool_fee' THEN
             -- Get the data type of the specified column
             SELECT data_type INTO v_column_type
             FROM information_schema.columns
@@ -361,7 +361,7 @@ BEGIN
             END IF;
 
         -- Apply the ALTER TABLE commands based on the table pattern
-        ELSIF v_table_name LIKE 'mempool_stats_30d_grouped_%' THEN
+        ELSIF v_table_name LIKE 'btc_1m_mempool_fee_%' THEN
             -- Get the data type of the specified column
             SELECT data_type INTO v_column_type
             FROM information_schema.columns

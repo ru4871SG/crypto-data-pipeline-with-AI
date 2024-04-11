@@ -5,18 +5,17 @@ ETL (Extract, Transform, Load) Script - BNB
 # %%
 
 ## Libraries
-import configparser
+from sqlalchemy import create_engine, inspect
+from dotenv import load_dotenv
+
 import json
 import os
 import pandas as pd
 import requests
-from sqlalchemy import create_engine, inspect
-
-from dotenv import load_dotenv
 
 # %%
 
-## Part 0: Connect to PostgreSQL database
+## Part 0: Connect to environment variables
 load_dotenv()
 
 db_name = os.environ.get("DB_NAME")
@@ -24,6 +23,8 @@ db_user = os.environ.get("DB_USER")
 db_password = os.environ.get("DB_PASSWORD")
 db_host = os.environ.get("DB_HOST")
 db_port = os.environ.get("DB_PORT")
+
+OWLRACLE_API_KEY = os.environ.get("OWLRACLE_API")
 
 # Connect to PostgreSQL database
 engine = create_engine(f"postgresql://{db_user}:{db_password}@{db_host}:{db_port}/{db_name}")
@@ -90,14 +91,7 @@ bnb_90d['bnb_vs_btc_normalized'] = bnb_90d['price_vs_btc'] \
 
 ## Part 2: Average Gas Fee History from Owlracle for the Past 30 Days
 #  Documentation: https://owlracle.info/docs#endpoint-history
-
-# Store the API key in config.ini and use your own API key over there.
-config = configparser.ConfigParser()
-config.read('config.ini')
-
-API_KEY = config['DEFAULT']['OWLRACTLE_API_KEY']
-
-response = requests.get(f"https://api.owlracle.info/v4/bsc/history?apikey={API_KEY}&candles=30&timeframe=1440", \
+response = requests.get(f"https://api.owlracle.info/v4/bsc/history?apikey={OWLRACLE_API_KEY}&candles=30&timeframe=1440", \
                         timeout=30)
 
 content = response.content
@@ -242,9 +236,8 @@ bnb_tvl['Date'] = pd.to_datetime(bnb_tvl['Date'])
 ## Part 6: Historical TVL Data by Protocol from DefiLlama (Only Top 10 Protocols from BSC/Binance)
 # Documentation: https://defillama.com/docs/api
 # List of Top DeFi protocol names
-bnb_defi_protocol_list_names = ["pancakeswap", "venus", "coinwind", "pinksale", "radiant-v2", \
-                                "biswap", "alpaca-finance", "uncx-network", "tranchess-yield", \
-                                "helio-protocol"]
+bnb_defi_protocol_list_names = ["pancakeswap", "venus", "biswap", \
+                                "alpaca-finance", "uncx-network", ]
 
 # Initialize an empty variable to store the result later
 bnb_defi_protocol_list = []
@@ -276,13 +269,13 @@ for protocol in bnb_defi_protocol_list_names:
         print(f"An error occurred: {err}")
 
 # Merge all dataframes on the 'date' column
-bnb_defi_tvl_top10 = bnb_defi_protocol_list[0]
+bnb_defi_tvl_top_dapps = bnb_defi_protocol_list[0]
 for df in bnb_defi_protocol_list[1:]:
-    bnb_defi_tvl_top10 = pd.merge(bnb_defi_tvl_top10, df, on='date', how='inner')
+    bnb_defi_tvl_top_dapps = pd.merge(bnb_defi_tvl_top_dapps, df, on='date', how='inner')
 
 # rename date to Date for consistency
-bnb_defi_tvl_top10.rename(columns={'date': 'Date'}, inplace=True)
-bnb_defi_tvl_top10['Date'] = pd.to_datetime(bnb_defi_tvl_top10['Date'])
+bnb_defi_tvl_top_dapps.rename(columns={'date': 'Date'}, inplace=True)
+bnb_defi_tvl_top_dapps['Date'] = pd.to_datetime(bnb_defi_tvl_top_dapps['Date'])
 
 
 # %%
@@ -300,7 +293,7 @@ dfs_and_tables = [
     (bnb_gas_fee, 'bnb_gas_fee'),
     (bnb_combined_data_final, 'bnb_combined_data_final'),
     (bnb_tvl, 'bnb_tvl'),
-    (bnb_defi_tvl_top10, 'bnb_defi_tvl_top10')
+    (bnb_defi_tvl_top_dapps, 'bnb_defi_tvl_top_dapps')
 ]
 
 # Loop through dataframes and their corresponding base table names

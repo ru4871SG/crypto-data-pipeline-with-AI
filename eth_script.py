@@ -5,18 +5,17 @@ ETL (Extract, Transform, Load) Script - Ethereum
 # %%
 
 ## Libraries
-import configparser
+from sqlalchemy import create_engine, inspect
+from dotenv import load_dotenv
+
 import json
 import os
 import pandas as pd
 import requests
-from sqlalchemy import create_engine, inspect
-
-from dotenv import load_dotenv
 
 # %%
 
-## Part 0: Connect to PostgreSQL database
+## Part 0: Connect to environment variables
 load_dotenv()
 
 db_name = os.environ.get("DB_NAME")
@@ -24,6 +23,8 @@ db_user = os.environ.get("DB_USER")
 db_password = os.environ.get("DB_PASSWORD")
 db_host = os.environ.get("DB_HOST")
 db_port = os.environ.get("DB_PORT")
+
+OWLRACLE_API_KEY = os.environ.get("OWLRACLE_API")
 
 # Connect to PostgreSQL database
 engine = create_engine(f"postgresql://{db_user}:{db_password}@{db_host}:{db_port}/{db_name}")
@@ -89,14 +90,7 @@ eth_90d['eth_vs_btc_normalized'] = eth_90d['price_vs_btc'] \
 
 ## Part 2: Average Gas Fee History from Owlracle for the Past 30 Days
 #  Documentation: https://owlracle.info/docs#endpoint-history
-
-# Store the API key in config.ini and use your own API key over there.
-config = configparser.ConfigParser()
-config.read('config.ini')
-
-API_KEY = config['DEFAULT']['OWLRACTLE_API_KEY']
-
-response = requests.get(f"https://api.owlracle.info/v4/eth/history?apikey={API_KEY}&candles=30&timeframe=1440", \
+response = requests.get(f"https://api.owlracle.info/v4/eth/history?apikey={OWLRACLE_API_KEY}&candles=30&timeframe=1440", \
                         timeout=30)
 
 content = response.content
