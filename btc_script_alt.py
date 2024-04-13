@@ -30,7 +30,7 @@ mongodb_uri = os.getenv('MONGODB_URI')
 
 # %%
 
-## Part 1: 30 days of Bitcoin and Gold Data (Normalized) with TheGraph's Subgraphs for WBTC and PAXG
+## Part 1: 30 days of Bitcoin and Gold Data (Normalized) with TheGraph's Subgraphs
 headers = {
     "Authorization": f"Bearer {thegraph_api}",
     "Content-Type": "application/json",
