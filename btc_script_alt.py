@@ -125,11 +125,11 @@ for days_ago in range(0, 30):
     except Exception as e:
         print("Error executing paxg_query:", e)
 
-    wbtc_price_in_eth = wbtc_response['token']['derivedETH']
-    eth_price_in_usd = wbtc_response['bundle']['ethPriceUSD']
-    wbtc_price_in_usd = float(wbtc_price_in_eth) * float(eth_price_in_usd)
-    paxg_price_in_eth = paxg_response['token']['derivedETH']
-    paxg_price_in_usd = float(paxg_price_in_eth) * float(eth_price_in_usd)
+    wbtc_price_in_eth = float(wbtc_response['token']['derivedETH'])
+    eth_price_in_usd = float(wbtc_response['bundle']['ethPriceUSD'])
+    wbtc_price_in_usd = wbtc_price_in_eth * eth_price_in_usd
+    paxg_price_in_eth = float(paxg_response['token']['derivedETH'])
+    paxg_price_in_usd = paxg_price_in_eth * eth_price_in_usd
 
     # Append the results
     results.append({
