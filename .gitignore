@@ -1,1 +1,5 @@
 .env
+__pycache__
+pages/__pycache__
+shared_functions/__pycache__
+ai_analyzer/__pycache__

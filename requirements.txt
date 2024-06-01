@@ -1,0 +1,13 @@
+dash
+python-dotenv
+Flask
+Gunicorn
+pandas
+requests
+scikit-learn
+plotly
+dash_bootstrap_components
+dune_client
+gql
+pymongo
+pytz

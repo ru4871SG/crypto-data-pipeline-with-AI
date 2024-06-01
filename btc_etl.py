@@ -1,7 +1,5 @@
 """
-ETL (Extract, Transform, Load) Script - Bitcoin (With Alternative Sources)
-Instead of using CoinGecko and Yahoo Finance, this script uses TheGraph and Dune Analytics.
-It also extracts more data from Mempool
+ETL (Extract, Transform, Load) Script - Bitcoin
 """
 
 # %%
@@ -21,7 +19,7 @@ import requests
 
 # %%
 
-## Part 0: Connect to environment variables
+# Part 0: Connect to environment variables
 load_dotenv()
 
 thegraph_api = os.environ.get('THEGRAPH_API')
@@ -30,7 +28,7 @@ mongodb_uri = os.getenv('MONGODB_URI')
 
 # %%
 
-## Part 1: 30 days of Bitcoin and Gold Data (Normalized) with TheGraph's Subgraphs
+# Part 1: 30 days of Bitcoin and Gold Data (Normalized) with TheGraph's Subgraphs
 headers = {
     "Authorization": f"Bearer {thegraph_api}",
     "Content-Type": "application/json",
@@ -74,6 +72,9 @@ meta_query = """
 current_block_response = client_wbtc.execute(gql(meta_query))
 current_block = current_block_response['_meta']['block']['number']
 
+# we will use the block number from about 1 hour ago since very recent block might have indexing issue
+current_block_delayed = current_block - 300
+
 # Assuming ~12.06 seconds average per block on Ethereum daily
 seconds_per_day = 86400
 blocks_per_day = seconds_per_day // 12.06
@@ -82,7 +83,7 @@ results = []
 
 # Loop through the past 30 days
 for days_ago in range(0, 30):
-    target_block = int(current_block - (blocks_per_day * days_ago))
+    target_block = int(current_block_delayed - (blocks_per_day * days_ago))
 
     # WBTC contract address
     wbtc_query = f"""
@@ -156,7 +157,7 @@ btc_1m_w_external['gold_price_normalized'] = btc_1m_w_external['paxg_price_in_us
 
 # %%
 
-## Part 2: Median Tx Fee from Mempool for the Past 1 Month (each row represents a group of blocks - per 3 blocks)
+# Part 2: Median Tx Fee from Mempool for the Past 1 Month (each row represents a group of blocks - per 3 blocks)
 def mempool_get_1m_avg_fee():
     """Fetches the average fee rates for the past 1 month"""
     url = "https://mempool.space/api/v1/mining/blocks/fee-rates/1m"
@@ -180,7 +181,7 @@ btc_1m_mempool_fee['time'] = pd.to_datetime(btc_1m_mempool_fee['timestamp'], uni
 
 # %%
 
-## Part 3: Historical BTC Price Data from Mempool
+# Part 3: Historical BTC Price Data from Mempool
 def mempool_get_btc_historical_price(timestamp):
     """Fetch Bitcoin historical price in USD"""
     url = f"https://mempool.space/api/v1/historical-price?currency=USD&timestamp={timestamp}"
@@ -218,7 +219,7 @@ else:
 
 # %%
 
-## Part 4: Mining Pools Data from Mempools
+# Part 4: Mining Pools Data from Mempools
 mempool_bitcoin_mining = requests.get("https://mempool.space/api/v1/mining/pools/1m", timeout=10)
 mining_pools_data = mempool_bitcoin_mining.json()
 
@@ -226,7 +227,7 @@ btc_mempool_mining_pools = pd.DataFrame(mining_pools_data['pools']).drop(columns
 
 # %%
 
-## Part 5: Lightning Network Data from Mempool
+# Part 5: Lightning Network Data from Mempool
 response = requests.get("https://mempool.space/api/v1/lightning/statistics/1m", timeout=10)
 data = response.json()
 
@@ -248,7 +249,7 @@ btc_1m_mempool_lightning = lightning_mempool_total_capacity.iloc[::-1]
 
 # %%
 
-## Part 6: Hashrate Fluctuation Data From Mempool (1 month)
+# Part 6: Hashrate Fluctuation Data From Mempool (1 month)
 def mempool_get_1m_hashrate():
     """Fetch Bitcoin hashrate data for the past 1 month and return as a Dataframe"""
     url = "https://mempool.space/api/v1/mining/hashrate/1m"
@@ -270,7 +271,7 @@ btc_1m_mempool_hashrate = mempool_get_1m_hashrate()
 
 # %%
 
-## Part 7: Fee Breakdown (between ordinals, brc-20, and standard BTC tx) - Dune Analytics 1 Month Data
+# Part 7: Fee Breakdown (Ordinals, BRC-20, and standard BTC tx) - Dune Analytics 1 Month Data
 dune = DuneClient(dune_api, request_timeout=10)
 query_result = dune.get_latest_result(2432967)
 
@@ -289,15 +290,16 @@ date_1_month_ago = current_date - timedelta(days=31)
 # Filter the DataFrame to include only the last month
 btc_1m_dune_fee_breakdown = btc_1m_dune_fee_breakdown[btc_1m_dune_fee_breakdown['Day'] >= date_1_month_ago]
 
-# Sort the DataFrame by the 'Day' column from earliest to latest
+# Sort the DataFrame by the 'Day' column from earliest to latest, and drop the last row
 btc_1m_dune_fee_breakdown = btc_1m_dune_fee_breakdown.sort_values('Day')
+btc_1m_dune_fee_breakdown = btc_1m_dune_fee_breakdown.drop(btc_1m_dune_fee_breakdown.index[-1])
 
 # Reset the index to have a clean 'row_num' column
 btc_1m_dune_fee_breakdown.reset_index(drop=True, inplace=True)
 
 # %%
 
-## Part 8: Load Dataframes to MongoDB
+# Part 8: Load Dataframes to MongoDB
 def load_to_mongodb(df, df_name, date_df, uri):
     client = MongoClient(uri)
     db = client['deftify_research']
@@ -329,6 +331,10 @@ def load_to_mongodb(df, df_name, date_df, uri):
     # Insert each record in the DataFrame into the collection
     collection.insert_many(data_dict)
 
+    # Write the month and year to a .txt file to be recognized by the other scripts
+    with open('month_year.txt', 'w') as f:
+        f.write(f"{month}_{year}")
+
 # Store all the transformed dataframes into MongoDB collections, with 'btc_1m_mempool_fee' as 'date_df'
 load_to_mongodb(btc_1m_w_external, 'btc_1m_w_external', btc_1m_mempool_fee, mongodb_uri)
 load_to_mongodb(btc_1m_mempool_fee, 'btc_1m_mempool_fee', btc_1m_mempool_fee, mongodb_uri)
@@ -337,3 +343,4 @@ load_to_mongodb(btc_mempool_mining_pools, 'btc_mempool_mining_pools', btc_1m_mem
 load_to_mongodb(btc_1m_mempool_lightning, 'btc_1m_mempool_lightning', btc_1m_mempool_fee, mongodb_uri)
 load_to_mongodb(btc_1m_mempool_hashrate, 'btc_1m_mempool_hashrate', btc_1m_mempool_fee, mongodb_uri)
 load_to_mongodb(btc_1m_dune_fee_breakdown, 'btc_1m_dune_fee_breakdown', btc_1m_mempool_fee, mongodb_uri)
+
