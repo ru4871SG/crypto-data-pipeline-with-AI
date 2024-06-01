@@ -16,7 +16,7 @@ The monthly report pages (with all the graphs and texts) can be automatically ge
 
 The process is fairly straightforward. First of all, you need to create your own `.env` file with your configuration settings for PostgreSQL and MongoDB. You should also include your API keys for TheGraph, Dune Analytics, Owlracle, and OpenAI. Please check `.env.example` to learn the structure.
 
-Afterward, you just need to run the Bash script `execute_scripts.sh`, which will automatically execute all the Python ETL scripts, followed by the Python AI data analysis script, and finally, the new monthly report pages for Bitcoin, Ethereum, and Chainlink will be automatically generated. If any script fails, it will retry after a few minutes delay. The script logs all its activities, including any failures, to `logs/results.txt`.
+Afterward, you just need to run the Bash script `execute_scripts.sh`, which will automatically execute all the Python ETL scripts, followed by the Python AI analysis script, and finally, the new monthly report pages for Bitcoin, Ethereum, and Chainlink will be automatically generated. If any script fails, it will retry after a few minutes delay. The script logs all its activities, including any failures, to `logs/results.txt`.
 
 Make sure to check `requirements.txt` to see the required libraries.
 
@@ -26,7 +26,7 @@ Once you successfully run the Bash script, you can start the cryptocurrency mont
 
 There are 3 Python ETL scripts:
 
-`btc_etl.py` - This is the ETL (Extract, Transform, Load) script for Bitcoin data. It is used to extract and transform data from three different API sources (TheGraph, Mempool, and Dune Analytics). Once the data has been processed, the transformed dataframes are automatically stored into your MongoDB database. This script also identify the current month and year, and will store them into the txt file `month_year.txt`. For example, if you run this script in June 2024, it will automatically change the text inside `month_year.txt` to "june_2024". The txt file `month_year.txt` is needed to identify the current month and year for the AI data analysis process, as well as for the creation of the new report pages.
+`btc_etl.py` - This is the ETL (Extract, Transform, Load) script for Bitcoin data. It is used to extract and transform data from three different API sources (TheGraph, Mempool, and Dune Analytics). Once the data has been processed, the transformed dataframes are automatically stored into your MongoDB database. This script also identify the current month and year, and will store them into the txt file `month_year.txt`. For example, if you run this script in June 2024, it will automatically change the text inside `month_year.txt` to "june_2024". The txt file `month_year.txt` is needed to identify the current month and year for the AI analysis process, as well as for the creation of the new report pages.
 
 `eth_etl.py` - This is the ETL script for Ethereum data. It is used to extract and transform data from three different API sources (TheGraph, Owlracle, and Dune Analytics). Just like the Bitcoin ETL script, the transformed dataframes are stored into your MongoDB database.
 
@@ -36,11 +36,11 @@ Note: If you encounter any error while running any of the above Python scripts, 
 
 ## Explanation for AI Analysis Script
 
-I've included a script for automating the data analysis process with AI (GPT-4o), which is `ai_analysis_fetch.py`. This script utilizes the module `ai_data_analysis.py` that's located in the `ai_analyzer` folder. If you want to change the AI that you want to utilize (e.g., from GPT-4o to GPT-3.5), you can check `ai_data_analysis.py`. As for changing the prompts, you can change them in `ai_analysis_fetch.py` itself.
+I've included an AI analysis script for automating the data analysis process with AI (GPT-4o), which is `ai_analysis_fetch.py`. This script utilizes the module `ai_data_analysis.py` that's located in the `ai_analyzer` folder. If you want to change the AI that you want to utilize (e.g., from GPT-4o to GPT-3.5), you can check `ai_data_analysis.py`. As for changing the prompts, you can change them in `ai_analysis_fetch.py` itself.
 
-When you run `ai_analysis_fetch.py`, it basically extracts the documents from MongoDB (after they are stored from the ETL scripts), and then, the AI will analyze them and provide the analysis texts. The texts will then be stored as a new json file, which you can find in the subfolder `ai_text_result`, located inside the folder `pages`.
+When you run `ai_analysis_fetch.py`, it basically extracts the documents from MongoDB (after they are stored from the ETL scripts), and then, the AI will analyze them and provide the analysis texts. The texts will then be stored as a new json file, which you can find in the subfolder `ai_text_result`, located inside the folder `pages`. 
 
-This script `ai_analysis_fetch.py` relies on the usage of `month_year.txt` to identify which documents it needs to extract from the MongoDB database. The created json file will also have the current month and year in its filename (so you can separate them automatically if you run the script every month).
+This AI analysis relies on the usage of `month_year.txt` to identify which documents it needs to extract from the MongoDB database. When the script creates a new json file, the new json file will have the latest month and year in its filename (so you can separate them automatically if you run the script every month). The included JSON files in this repo, `analysis_result_april_2024.json` and `analysis_result_may_2024.json`, were also generated by this process.
 
 ## Explanation for Dash App
 
