@@ -32,7 +32,6 @@ run_with_retry() {
 echo "Running Python ETL scripts..."
 run_with_retry btc_etl.py
 run_with_retry eth_etl.py
-run_with_retry chainlink_etl.py
 
 echo "All ETL scripts executed successfully."
 
@@ -49,13 +48,11 @@ month_year=$(cat month_year.txt)
 echo "Generating all the new report pages..."
 sed "s/_april_2024/_${month_year}/g" pages/btc_april_2024.py > "pages/btc_${month_year}.py"
 sed "s/_april_2024/_${month_year}/g" pages/eth_april_2024.py > "pages/eth_${month_year}.py"
-sed "s/_april_2024/_${month_year}/g" pages/chainlink_april_2024.py > "pages/chainlink_${month_year}.py"
 
 # Replace every mention of "April 2024" with the latest month and year
 formatted_month_year=$(echo $month_year | sed 's/_/ /' | tr '[:lower:]' '[:upper:]' | awk '{for(i=1;i<=NF;i++)sub(/./,toupper(substr($i,1,1)),$i)}1')
 sed -i "s/APRIL 2024/${formatted_month_year}/g" "pages/btc_${month_year}.py"
 sed -i "s/APRIL 2024/${formatted_month_year}/g" "pages/eth_${month_year}.py"
-sed -i "s/APRIL 2024/${formatted_month_year}/g" "pages/chainlink_${month_year}.py"
 
 echo "All new report pages generated successfully."
 

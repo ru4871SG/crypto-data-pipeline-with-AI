@@ -40,10 +40,6 @@ collection_eth_1m_uniswap_data = db[f"eth_1m_uniswap_data_{month_year}"]
 collection_eth_1m_tvl = db[f"eth_1m_tvl_{month_year}"]
 collection_eth_1m_l2_bridge_all = db[f"eth_1m_l2_bridge_all_{month_year}"]
 
-collection_chainlink_1m_w_external = db[f"chainlink_1m_w_external_{month_year}"]
-collection_chainlink_1m_uniswap_data = db[f"chainlink_1m_uniswap_data_{month_year}"]
-collection_chainlink_1m_aave_data = db[f"chainlink_1m_aave_data_{month_year}"]
-
 
 btc_1m_w_external = pd.DataFrame(list(collection_btc_1m_w_external.find()))
 btc_1m_mempool_fee = pd.DataFrame(list(collection_btc_1m_mempool_fee.find()))
@@ -59,9 +55,6 @@ eth_1m_uniswap_data = pd.DataFrame(list(collection_eth_1m_uniswap_data.find()))
 eth_1m_tvl = pd.DataFrame(list(collection_eth_1m_tvl.find()))
 eth_1m_l2_bridge_all = pd.DataFrame(list(collection_eth_1m_l2_bridge_all.find()))
 
-chainlink_1m_w_external = pd.DataFrame(list(collection_chainlink_1m_w_external.find()))
-chainlink_1m_uniswap_data = pd.DataFrame(list(collection_chainlink_1m_uniswap_data.find()))
-chainlink_1m_aave_data = pd.DataFrame(list(collection_chainlink_1m_aave_data.find()))
 
 ## Extract the latest month and year from the 'btc_1m_mempool_fee' dataframe
 if 'time' in btc_1m_mempool_fee.columns:
@@ -223,43 +216,6 @@ analysis_result_eth_1m_l2_bridge_all = data_analyzer(prompt_eth_1m_l2_bridge_all
 analysis_result_eth_1m_l2_bridge_all = remove_after_last_period(analysis_result_eth_1m_l2_bridge_all)
 analysis_data_eth_1m_l2_bridge_all = {'eth_1m_l2_bridge_all': analysis_result_eth_1m_l2_bridge_all}
 
-# For the 'chainlink_1m_w_external' dataframe
-text_to_analyze_chainlink_1m_w_external = ', '.join(f"{col}: {chainlink_1m_w_external[col].tolist()}" for col in chainlink_1m_w_external.columns)
-prompt_chainlink_1m_w_external = (
-    f"Analyze the data and provide a cryptocurrency analysis report within one paragraph (maximum 4 sentences)."
-    f"Analyze the price change between Chainlink price (from column chainlink_price_normalized) and BTC Price (from column btc_price_normalized) and ETH Price (from column eth_price_normalized) on: '{text_to_analyze_chainlink_1m_w_external}'. "
-    f"Keep the review concise and do not mention the numbers or column names, just mention the overall trend differences."
-)
-analysis_result_chainlink_1m_w_external = data_analyzer(prompt_chainlink_1m_w_external)
-analysis_result_chainlink_1m_w_external = remove_after_last_period(analysis_result_chainlink_1m_w_external)
-analysis_data_chainlink_1m_w_external = {'chainlink_1m_w_external': analysis_result_chainlink_1m_w_external}
-
-# For the 'chainlink_1m_uniswap_data' dataframe
-chainlink_1m_uniswap_data_filtered = chainlink_1m_uniswap_data.drop(columns=["_id", "target_block", "txCount", "volumeUSD"], errors='ignore')
-
-text_to_analyze_chainlink_1m_uniswap_data = ', '.join(f"{col}: {chainlink_1m_uniswap_data_filtered[col].tolist()}" for col in chainlink_1m_uniswap_data_filtered.columns)
-prompt_chainlink_1m_uniswap_data = (
-    f"Analyze the data and provide a cryptocurrency analysis report within one paragraph (maximum 4 sentences)."
-    f"Analyze the changes over time of Chainlink TVL in USD for Uniswap Protocol (from column totalValueLockedUSD) and daily volume in USD from Uniswap Protocol (from column dailyVolumeUSD) on: '{text_to_analyze_chainlink_1m_uniswap_data}'. "
-    f"Keep the review concise and do not mention the numbers or column names, just analyze their changes over time."
-)
-analysis_result_chainlink_1m_uniswap_data = data_analyzer(prompt_chainlink_1m_uniswap_data)
-analysis_result_chainlink_1m_uniswap_data = remove_after_last_period(analysis_result_chainlink_1m_uniswap_data)
-analysis_data_chainlink_1m_uniswap_data = {'chainlink_1m_uniswap_data': analysis_result_chainlink_1m_uniswap_data}
-
-# For the 'chainlink_1m_aave_data' dataframe
-chainlink_1m_aave_data_filtered = chainlink_1m_aave_data.drop(columns=["_id", "target_block"], errors='ignore')
-
-text_to_analyze_chainlink_1m_aave_data = ', '.join(f"{col}: {chainlink_1m_aave_data_filtered[col].tolist()}" for col in chainlink_1m_aave_data_filtered.columns)
-prompt_chainlink_1m_aave_data = (
-    f"Analyze the data and provide a cryptocurrency analysis report within one paragraph (maximum 4 sentences)."
-    f"Analyze the changes over time of Chainlink TVL in USD for Aave Protocol (from column totalValueLockedUSD) and total borrow balance in USD for Aave Protocol (from column totalBorrowBalanceUSD) and total deposit balance in USD for Aave Protocol (from column totalDepositBalanceUSD) on: '{text_to_analyze_chainlink_1m_aave_data}'. "
-    f"Keep the review concise and do not mention the numbers or column names, just analyze their changes over time."
-)
-analysis_result_chainlink_1m_aave_data = data_analyzer(prompt_chainlink_1m_aave_data)
-analysis_result_chainlink_1m_aave_data = remove_after_last_period(analysis_result_chainlink_1m_aave_data)
-analysis_data_chainlink_1m_aave_data = {'chainlink_1m_aave_data': analysis_result_chainlink_1m_aave_data}
-
 
 ## Update the dictionary with all the analysis results
 analysis_data = {
@@ -274,10 +230,7 @@ analysis_data = {
     **analysis_data_eth_1m_gas_fee,
     **analysis_data_eth_1m_uniswap_data,
     **analysis_data_eth_1m_tvl,
-    **analysis_data_eth_1m_l2_bridge_all,
-    **analysis_data_chainlink_1m_w_external,
-    **analysis_data_chainlink_1m_uniswap_data,
-    **analysis_data_chainlink_1m_aave_data
+    **analysis_data_eth_1m_l2_bridge_all
 }
 
 

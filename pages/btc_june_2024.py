@@ -398,7 +398,7 @@ def key_insights():
     ])
 
 # Inform Dash that this is a page
-dash.register_page(__name__, title='Deftify Monthly Cryptocurrency Analysis - Homepage', path='/')
+dash.register_page(__name__, title='BTC JUNE 2024 Report')
 
 # Modify the default index string's title
 index_string = '''

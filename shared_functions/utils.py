@@ -16,7 +16,6 @@ def format_title(words):
 def header():
     btc_pages = [page for page in dash.page_registry.values() if 'BTC' in page['title']]
     eth_pages = [page for page in dash.page_registry.values() if 'ETH' in page['title']]
-    chainlink_pages = [page for page in dash.page_registry.values() if 'Chainlink' in page['title']]
 
 
     return html.Div([
@@ -84,21 +83,6 @@ def header():
                             format_title(page['name'].replace('ETH ', '')),
                             href=page["relative_path"],
                             ) for page in eth_pages
-                    ],
-                    className="page_link",
-                ),
-                dbc.DropdownMenu(
-                    label=html.Div([
-                        html.Div([
-                            html.Img(src="assets/icons/chainlink.png", alt="btc"),
-                        ], className="link_img"),
-                        html.H4('LINK')
-                    ], className="header_small_row"),
-                    children=[
-                        dbc.DropdownMenuItem(
-                            format_title(page['name'].replace('LINK ', '')),
-                            href=page["relative_path"],
-                            ) for page in chainlink_pages
                     ],
                     className="page_link",
                 ),

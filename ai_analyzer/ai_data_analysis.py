@@ -23,7 +23,7 @@ def data_analyzer(prompt):
             {'role': 'system', 'content': 'You are a helpful data analyst that writes crypto analysis reports from the data that is shown to you.'},
             {'role': 'user', 'content': prompt}
         ],
-        'max_tokens': 50
+        'max_tokens': 100
     }
 
     headers = {
