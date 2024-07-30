@@ -1,6 +1,7 @@
+# Import Libraries
 from dash import dcc, html
 
-
+# Function for each data visualization
 def single_data_viz(figure, title, description, section_id):
     """Generates a single data visualization section."""
     return [
@@ -9,6 +10,7 @@ def single_data_viz(figure, title, description, section_id):
         html.P(description, className="paragraph-text", id=f"paragraph_text_{section_id}_1"),
     ]
 
+# Function for handling multiple data visualizations
 def data_viz(*visualizations):
     """Handles multiple visualizations. Each visualization is a tuple of (figure, title, description)."""
     content = []
@@ -16,6 +18,7 @@ def data_viz(*visualizations):
         content.extend(single_data_viz(figure, title, description, section_id=f'section{idx}'))
     return html.Div(content, className="section")
 
+# Function to generate the main pane
 def generate(header_content, insights_content, *visualizations):
     return html.Div([
         # header_content,
